@@ -1,76 +1,83 @@
+import tkinter as tk
+from tkinter import messagebox
 from cryptography.fernet import Fernet
 import os
 
 # Generate a secret key and save it (only runs once)
-def generateKey():
+def generate_key():
     if not os.path.exists("secretKey.key"):
         key = Fernet.generate_key()
-        with open("secretKey.key", "wb") as keyFile:
-            keyFile.write(key)
+        with open("secretKey.key", "wb") as key_file:
+            key_file.write(key)
 
-# Load the key from the file
-def loadKey():
-    with open("secretKey.key", "rb") as keyFile:
-        return keyFile.read()
+def load_key():
+    with open("secretKey.key", "rb") as key_file:
+        return key_file.read()
 
-# Encrypt a message and save it
-def encryptMessage():
-    key = loadKey()
+def encrypt_message():
+    key = load_key()
     f = Fernet(key)
-
-    message = input("Enter the text to encrypt: ")
-    encryptedMessage = f.encrypt(message.encode())
-
-    with open("encryptedMessage.txt", "wb") as encFile:
-        encFile.write(encryptedMessage)
-
-    print("\nMessage encrypted and saved successfully!")
-
-# Decrypt the message by requesting authorization
-def decryptMessage():
-    if not os.path.exists("encryptedMessage.txt"):
-        print("No encrypted message found.")
+    
+    message = entry_text.get()
+    if not message:
+        messagebox.showerror("Error", "Please enter a message to encrypt.")
         return
+    
+    encrypted_message = f.encrypt(message.encode())
+    with open("encryptedMessage.txt", "wb") as enc_file:
+        enc_file.write(encrypted_message)
+    
+    messagebox.showinfo("Success", "Message encrypted and saved successfully!")
+    entry_text.delete(0, tk.END)
 
-    authKey = input("\nEnter authorization key to decrypt: ")
-
+def decrypt_message():
+    if not os.path.exists("encryptedMessage.txt"):
+        messagebox.showerror("Error", "No encrypted message found.")
+        return
+    
+    auth_key = entry_key.get()
+    if not auth_key:
+        messagebox.showerror("Error", "Please enter the authorization key.")
+        return
+    
     try:
-        key = loadKey()
-        if authKey.encode() != key[:len(authKey)]:  # Basic auth check
-            print("Authorization failed!")
+        key = load_key()
+        if auth_key.encode() != key[:len(auth_key)]:
+            messagebox.showerror("Error", "Authorization failed!")
             return
         
-        with open("encryptedMessage.txt", "rb") as encFile:
-            encryptedMessage = encFile.read()
+        with open("encryptedMessage.txt", "rb") as enc_file:
+            encrypted_message = enc_file.read()
 
         f = Fernet(key)
-        decryptedMessage = f.decrypt(encryptedMessage).decode()
+        decrypted_message = f.decrypt(encrypted_message).decode()
         
-        print("\nDecrypted Message:", decryptedMessage)
-
+        messagebox.showinfo("Decrypted Message", decrypted_message)
     except Exception as e:
-        print("Decryption failed!", str(e))
+        messagebox.showerror("Error", "Decryption failed!")
 
-# Main menu
-def main():
-    generateKey()
+# GUI Setup
+generate_key()
+root = tk.Tk()
+root.title("Message Encryptor & Decryptor")
+root.geometry("400x300")
+root.configure(bg="#222222")
 
-    while True:
-        print("\n1. Encrypt a Message")
-        print("2. Decrypt a Message")
-        print("3. Exit")
+frame = tk.Frame(root, bg="#333333", padx=20, pady=20)
+frame.pack(pady=20)
 
-        choice = input("\nSelect an option: ")
+tk.Label(frame, text="Enter Message:", fg="white", bg="#333333").pack()
+entry_text = tk.Entry(frame, width=40)
+entry_text.pack(pady=5)
 
-        if choice == "1":
-            encryptMessage()
-        elif choice == "2":
-            decryptMessage()
-        elif choice == "3":
-            print("Exiting...")
-            break
-        else:
-            print("Invalid option, try again.")
+tk.Button(frame, text="Encrypt", command=encrypt_message, bg="#444444", fg="white").pack(pady=5)
 
-if __name__ == "__main__":
-    main()
+tk.Label(frame, text="Enter Key:", fg="white", bg="#333333").pack()
+entry_key = tk.Entry(frame, width=40)
+entry_key.pack(pady=5)
+
+tk.Button(frame, text="Decrypt", command=decrypt_message, bg="#444444", fg="white").pack(pady=5)
+
+tk.Button(root, text="Exit", command=root.quit, bg="#555555", fg="white").pack(pady=10)
+
+root.mainloop()
